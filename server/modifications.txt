@@ -1,0 +1,8 @@
+Implementação do sistema de registros:
+Cadastro de usuário
+Login - Autenticação
+Autorização e hierarquica
+
+Padronização:
+Criação de valicações através de validations.py
+Modificação para snake_case

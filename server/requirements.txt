@@ -2,3 +2,5 @@ fastapi[all]
 uvicorn
 sqlalchemy
 python-multipart
+pandas
+bcrypt
