@@ -99,8 +99,8 @@ def list_publications(category: Optional[str]) -> dict:
         else:
             response = currentSession.query(Publication).all()
     except Exception as e:
-        return {"message": str(e), "status_code": 200}
-    
+        return {"message": str(e), "status_code": 500}
+    print(response, category)
     if response is not None:
         return {"message": "Publications found successfuly", "status_code": 200, "articles": [element.title for element in response]}
     else:

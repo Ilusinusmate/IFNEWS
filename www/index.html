@@ -37,7 +37,7 @@
 
         async function fetchArticles() {
             try {
-                const response = await fetch('http://localhost:8000/articles');
+                const response = await fetch('http://localhost:8000/articles/search');
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
                 }

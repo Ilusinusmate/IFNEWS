@@ -76,8 +76,6 @@ def upload_article(args: validations.Article):
     with open(file_path, 'w') as file:
         file.write(args.text)
 
-    
-
     return Response(content=answer["message"], status_code=answer["status_code"])
 
 #DELETAR PUBLICAÇÃO
