@@ -26,16 +26,16 @@ app.add_middleware(
 
 #LISTAR PUBLICAÇÕES
 @app.get("/articles/search/{category}", status_code=200)
-def list_articles(category: Optional[str]):
+async def list_articles(category: Optional[str]):
     if category in set(("{category}", "NULL", "none", "Null", "None")): category = None
     
     answer = database.list_publications(category=category)
     
-    return Response(content=str(answer), status_code=answer["status_code"])
+    return JSONResponse(content=answer, status_code=answer["status_code"])
 
 #VER PUBLICAÇÃO POR TITULO
 @app.get("/articles/{title}", status_code=200)
-def get_article(title: str):
+async def get_article(title: str):
 
     title = title.lower()
     temp = title[::]
@@ -50,16 +50,17 @@ def get_article(title: str):
             with open(file_path, 'r') as file:
                 answer["text"] = file.read()
 
-            return answer
+            answer["publishiment_date_time"] = str(answer["publishiment_date_time"])
+
+            return JSONResponse(answer, status_code=answer["status_code"])
         
         raise HTTPException(status_code=404, detail=f"Specified file name '{title}' does not match a file in database")
 
-    else:
-        raise HTTPException(status_code=404, detail=f"Specified file name '{title}' does not match a file in articles directory.")
+    raise HTTPException(status_code=404, detail=f"Specified file name '{title}' does not match a file in articles directory.")
 
 #CRIAR PUBLICAÇÃO
 @app.post("/articles/", status_code=status.HTTP_201_CREATED)
-def upload_article(args: validations.Article):
+async def upload_article(args: validations.Article):
 
     #formatação
     args.title = args.title.lower()
@@ -77,11 +78,11 @@ def upload_article(args: validations.Article):
         with open(file_path, 'w') as file:
             file.write(args.text)
 
-    return Response(content=answer["message"], status_code=answer["status_code"])
+    return JSONResponse(answer, status_code=answer["status_code"])
 
 #DELETAR PUBLICAÇÃO
 @app.delete("/articles/")
-def delete_article(title: str, token: str):
+async def delete_article(title: str, token: str):
     answer = database.get_publication(title=title)
 
     if answer["status_code"] == 404:
@@ -100,7 +101,7 @@ def delete_article(title: str, token: str):
 
 #REGISTRAR USUÁRIO
 @app.post("/auth/register", status_code=201)
-def register(args: validations.RegisterForm):
+async def register(args: validations.RegisterForm):
     if not validations.is_valid_email(args.email):
         raise HTTPException(status_code=400, detail="Invalid email inserted.")   
     
