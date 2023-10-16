@@ -4,6 +4,6 @@ venv_linux
 materias
 articles
 hidebackend.txt
-data
 __pycache__
+database.db
 pycahe

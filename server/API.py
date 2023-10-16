@@ -73,23 +73,30 @@ def upload_article(args: validations.Article):
 
     answer = database.create_publication(args, file_path)
 
-    with open(file_path, 'w') as file:
-        file.write(args.text)
+    if answer["status_code"] != 401:
+        with open(file_path, 'w') as file:
+            file.write(args.text)
 
     return Response(content=answer["message"], status_code=answer["status_code"])
 
 #DELETAR PUBLICAÇÃO
-@app.delete("/articles/{title}", status_code=204) # t
-def delete_article(title):
+@app.delete("/articles/")
+def delete_article(title: str, token: str):
     answer = database.get_publication(title=title)
 
     if answer["status_code"] == 404:
         raise HTTPException(status_code=404, detail=f"Does not exist any publication with {title} title.")
 
-    if not title.endswith(".txt"): title += ".txt"
-    os.remove(os.path.join(articles_directory, title)) 
-    answer = database.delete_publication(title=title)
-    return answer
+    vld = database.delete_publication(title=title, token=token)
+    if vld["status_code"] == 401: return HTTPException(detail="Not valid token", status_code=401)
+
+    if not os.path.exists(answer["file_path"]): return HTTPException(detail="File path to article was not found.", status_code=400)
+    os.remove(os.path.join(answer["file_path"])) 
+    
+    if vld["status_code"] != 204:
+        return JSONResponse(vld, status_code=vld["status_code"])
+
+    return Response(status_code=204)
 
 #REGISTRAR USUÁRIO
 @app.post("/auth/register", status_code=201)
@@ -100,17 +107,27 @@ def register(args: validations.RegisterForm):
     if not validations.is_valid_password(args.password):
         raise HTTPException(status_code=400, detail="The password must contain at least 1 upper leter, 1 lower leter, 1 number, 1 especial caractere and at least contain 8 caracteres.")
     
-    if database.isRegistered(email=args.email):
-        raise HTTPException(status_code=100, detail=f"This user is already registered. email: {email} Already in use.")
+    if database.is_registered(email=args.email)["is_registered"]:
+        raise HTTPException(status_code=100, detail=f"This user is already registered. email: {args.email} Already in use.")
     
     password = args.password.encode("utf-8")
     salt = bcrypt.gensalt()
     password_hash = bcrypt.hashpw(password, salt)
 
-    status_code, message = database.registUser(user_name=args.user_name, email=args.email, password_hash=password_hash, suap_regist_number=args.suap_regist_number)
+    answer = database.resgist_user(user_name=args.user_name, email=args.email, password_hash=password_hash, suap_registration_number=args.suap_registration_number)
     
-    return JSONResponse(status_code=status_code, content=message)
+    return JSONResponse(status_code=answer["status_code"], content=answer["message"])
+
+# LOGIN DE USUÁRIO
+@app.post("/auth/login")
+async def login(args: validations.LoginForm):
+
+    if not validations.is_valid_email(args.email):
+        raise HTTPException(status_code=400, detail="Invalid email inserted.") 
+    answer = database.create_token(args)
     
+    return JSONResponse(answer, status_code=answer["status_code"])
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host='localhost', port=8000)

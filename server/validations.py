@@ -1,11 +1,17 @@
 from pydantic import BaseModel
 from typing import Optional, List
+import re
 
 class RegisterForm(BaseModel):
     user_name: str
     email: str
     password: str
-    suap_regist_number: Optional[str]
+    suap_registration_number: Optional[str]
+
+class LoginForm(BaseModel):
+    email: str
+    password: str
+    suap_registration_number: Optional[str]
 
 class Article(BaseModel):
     title: str
@@ -13,7 +19,7 @@ class Article(BaseModel):
     text: str
     key_words: Optional[List[str]]
     category: Optional[str]
-    token: Optional[str]
+    token: str
 
 def is_valid_email(email):
     email_pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
