@@ -70,7 +70,7 @@ def is_valid_token(token: str): # -> 200 (valid token) | 401 ( expired token  | 
 
     response = currentSession.query(AuthenticationTokens).filter_by(token=token).first()
     currentSession.close()
-    if not response:
+    if response is None:
         return {"message": "Token does not exists.", "status_code": 401, "is_valid": False}
     if datetime.utcnow() - response.creation_date_time > timedelta(hours=3):
         return {"message": "Token is expired, login again.", "status_code": 401, "is_valid": False}
@@ -98,19 +98,30 @@ def create_token(args: validations.LoginForm):
 
     currentSession = primarySession()
     try:
+
+        # Verifica se o usuário está registrado
         vld = is_registered(args.email if args.email is not None else args.suap_registration_number)
         if not vld["is_registered"]: return {"message": "User not registered.", "status_code": 404}
 
+        # Verifica se a senha do usuário está correta
         response = currentSession.query(Users).filter_by(email=args.email).first()
         if not bcrypt.checkpw(args.password.encode("utf-8"), response.password_hash): return {"message": "Password does not match", "status_code": 401}
 
+        # Verifica se já existe o token para o usuário e se ele continua válido
         vld = currentSession.query(AuthenticationTokens).filter_by(user_id=args.email).first()
         if vld is not None and is_valid_token(vld.token)["is_valid"]: return {"message": "Token still valid.", "status_code": 200, "token": vld.token} 
 
+        # Instancia novo token
         token = str(uuid.uuid4())
 
-        new_token = AuthenticationTokens(token=token, user_id=response.email)
-        currentSession.add(new_token)
+        # Verifica se já existe o token, porém ele expirou
+        if vld is not None:
+            vld.token = token
+            vld.creation_date_time = datetime.utcnow()
+        else:
+            new_token = AuthenticationTokens(token=token, user_id=response.email)
+            currentSession.add(new_token)
+
         currentSession.commit()
         currentSession.close()
         return {"message": "Token created", "status_code": 200, "token": token}
@@ -183,7 +194,7 @@ def create_publication(args: validations.Article, file_path: str): # -> 201 (cre
         currentSession.close()
         return {"message": str(e), "status_code": 500}
 
-def delete_publication(title: str, token: str): # title: str -> status code 204 (deleted)  | 500 (error)
+def delete_publication(title: str, token: str): # title: str -> status code 204 (deleted) | 401 (unauthorized) | 500 (error)
 
     if not is_valid_token(token)["is_valid"]: return {"message": "Unanuthoraized acess, not valid token, to improve your privilege Log-in.", "status_code": 401}
 

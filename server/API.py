@@ -89,7 +89,7 @@ async def delete_article(title: str, token: str):
         raise HTTPException(status_code=404, detail=f"Does not exist any publication with {title} title.")
 
     vld = database.delete_publication(title=title, token=token)
-    if vld["status_code"] == 401: return HTTPException(detail="Not valid token", status_code=401)
+    if vld["status_code"] == 401: return HTTPException(detail="Unanuthoraized acess, not valid token, to improve your privilege Log-in.", status_code=401)
 
     if not os.path.exists(answer["file_path"]): return HTTPException(detail="File path to article was not found.", status_code=400)
     os.remove(os.path.join(answer["file_path"])) 
